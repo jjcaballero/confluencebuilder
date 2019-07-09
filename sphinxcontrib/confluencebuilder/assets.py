@@ -11,6 +11,7 @@ from docutils import nodes
 from sphinx import addnodes
 from sphinx.util.images import guess_mimetype
 import os
+import re
 
 """
 default content type to use if a type cannot be detected for an asset
@@ -54,12 +55,13 @@ class ConfluenceAssetManager:
         master: the master document
         env: the build environment
     """
-    def __init__(self, master, env):
+    def __init__(self, master, env, supported_image_types):
         self.assets = []
         self.env = env
         self.hash2asset = {}
         self.key2asset = {}
         self.master = master
+        self.supported_image_types = supported_image_types
 
     def build(self):
         """
@@ -130,6 +132,17 @@ class ConfluenceAssetManager:
             doctree = self.env.get_doctree(docname)
             self.processDocument(doctree, docname)
 
+    def replace_star_by_first_supported_format(self, path):
+        for image_type in self.supported_image_types:
+            extension = re.sub(r'.*/', '', image_type)
+            try_asset = re.sub(r'\*$', extension, path)
+            if os.path.isfile(try_asset):
+                return try_asset
+        raise ConfluenceError(
+            """Error processing given asset ending with *."""
+            """Not found any supported image type. Tried formats: {}""".
+            format(supported_image_types))
+
     def processDocument(self, doctree, docname, standalone=False):
         """
         process a docment for assets
@@ -149,6 +162,8 @@ class ConfluenceAssetManager:
             uri = node['uri']
             if not uri.startswith('data:') and uri.find('://') == -1:
                 key, path = self.interpretAssetKeyPath(node)
+                if path.endswith('*') and not os.path.isfile(path):
+                    path = self.replace_star_by_first_supported_format(path)
                 if key not in self.key2asset:
                     hash = ConfluenceUtil.hashAsset(path)
                     type = guess_mimetype(path, default=DEFAULT_CONTENT_TYPE)
