@@ -7,6 +7,7 @@
 from .std.confluence import INVALID_CHARS
 from .logger import ConfluenceLogger
 from .util import ConfluenceUtil
+from .exceptions import ConfluenceError
 from docutils import nodes
 from sphinx import addnodes
 from sphinx.util.images import guess_mimetype
@@ -139,9 +140,9 @@ class ConfluenceAssetManager:
             if os.path.isfile(try_asset):
                 return try_asset
         raise ConfluenceError(
-            """Error processing given asset ending with *."""
-            """Not found any supported image type. Tried formats: {}""".
-            format(supported_image_types))
+            '''Error processing given asset ending with *. Asset: "{}" '''
+            '''Not found any supported image type. Supported formats: "{}"'''.
+            format(path, self.supported_image_types))
 
     def processDocument(self, doctree, docname, standalone=False):
         """
